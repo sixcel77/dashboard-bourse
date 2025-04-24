@@ -44,6 +44,8 @@
     th {
       background-color: #e5e7eb;
     }
+    .up { color: green; }
+    .down { color: red; }
   </style>
 </head>
 <body>
@@ -51,20 +53,21 @@
     <h1>📅 Calendrier Économique & Cours en Direct</h1>
   </header>
   <div class="container">
-    <h2>📈 Cours en Direct</h2>
+    <h2>📈 Cours en Direct (données gratuites via Financial Modeling Prep)</h2>
     <table id="live-prices">
       <thead>
         <tr>
           <th>Indice / Actif</th>
           <th>Dernier Cours</th>
+          <th>Variation</th>
         </tr>
       </thead>
       <tbody>
-        <tr><td>CAC 40</td><td id="cac40">Chargement...</td></tr>
-        <tr><td>Dow Jones</td><td id="dj">Chargement...</td></tr>
-        <tr><td>Nasdaq 100</td><td id="nas100">Chargement...</td></tr>
-        <tr><td>EUR/USD</td><td id="eurusd">Chargement...</td></tr>
-        <tr><td>XAU/USD</td><td id="xauusd">Chargement...</td></tr>
+        <tr><td>CAC 40</td><td id="cac40">Chargement...</td><td id="cac40-change">...</td></tr>
+        <tr><td>Dow Jones</td><td id="dj">Chargement...</td><td id="dj-change">...</td></tr>
+        <tr><td>Nasdaq 100</td><td id="nas100">Chargement...</td><td id="nas100-change">...</td></tr>
+        <tr><td>EUR/USD</td><td id="eurusd">Chargement...</td><td id="eurusd-change">...</td></tr>
+        <tr><td>XAU/USD</td><td id="xauusd">Chargement...</td><td id="xauusd-change">...</td></tr>
       </tbody>
     </table>
 
@@ -73,25 +76,43 @@
   </div>
 
   <script>
-    async function fetchData(symbol, elementId) {
-      const response = await fetch(`https://api.twelvedata.com/price?symbol=${symbol}&apikey=a127c4dee2ca419e807b0b939bfaccd9`);
-      const data = await response.json();
-      document.getElementById(elementId).textContent = data.price ? `${data.price} USD` : 'Indisponible';
+    const API_KEY = '5dyHTc54TD3g9W5tr9qKNOF7fEKuWV7V';
+
+    async function fetchFMP(symbol, elementId, changeId) {
+      try {
+        const response = await fetch(`https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${API_KEY}`);
+        const data = await response.json();
+        if (data && data[0]) {
+          const price = data[0].price;
+          const change = data[0].changesPercentage;
+          document.getElementById(elementId).textContent = `${price.toFixed(2)} USD`;
+          const changeElement = document.getElementById(changeId);
+          if (change !== undefined) {
+            changeElement.textContent = `${change.toFixed(2)}%`;
+            changeElement.className = change >= 0 ? 'up' : 'down';
+          } else {
+            changeElement.textContent = 'N/A';
+          }
+        } else {
+          document.getElementById(elementId).textContent = 'Indisponible';
+          document.getElementById(changeId).textContent = 'Indisponible';
+        }
+      } catch (e) {
+        document.getElementById(elementId).textContent = 'Erreur';
+        document.getElementById(changeId).textContent = 'Erreur';
+      }
     }
 
-    fetchData('CAC40', 'cac40');
-    fetchData('DJI', 'dj');
-    fetchData('NDX', 'nas100');
-    fetchData('EUR/USD', 'eurusd');
-    fetchData('XAU/USD', 'xauusd');
+    function updateAll() {
+      fetchFMP('CAC40', 'cac40', 'cac40-change');
+      fetchFMP('DJIA', 'dj', 'dj-change');
+      fetchFMP('NDX', 'nas100', 'nas100-change');
+      fetchFMP('EURUSD', 'eurusd', 'eurusd-change');
+      fetchFMP('XAUUSD', 'xauusd', 'xauusd-change');
+    }
 
-    setInterval(() => {
-      fetchData('CAC40', 'cac40');
-      fetchData('DJI', 'dj');
-      fetchData('NDX', 'nas100');
-      fetchData('EUR/USD', 'eurusd');
-      fetchData('XAU/USD', 'xauusd');
-    }, 60000);
+    updateAll();
+    setInterval(updateAll, 60000);
   </script>
 </body>
 </html>
